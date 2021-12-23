@@ -3,11 +3,11 @@
 import PackageDescription
 
 let package = Package(
-    name: "slox",
+    name: "Slox",
     platforms: [.macOS(.v12)],
     products: [
         .library(
-            name: "slox",
+            name: "Slox",
             targets: ["Slox"]
         ),
     ],
@@ -17,7 +17,7 @@ let package = Package(
         .executableTarget(
             name: "cli",
             dependencies: [
-                "Slox"
+                "Slox",
             ]
         ),
         .target(
