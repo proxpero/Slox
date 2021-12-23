@@ -138,3 +138,14 @@ final class ParsingErrorTests: XCTestCase {
         XCTAssertThrowsError(try Parser(tokens: tokens).parse())
     }
 }
+
+extension Expr {
+    static func binary(lhs: Expr, op: TokenType, rhs: Expr) -> Expr {
+        .binary(lhs: lhs, op: .init(type: op, line: 1), rhs: rhs)
+    }
+
+    static func unary(op: TokenType, rhs: Expr) -> Expr {
+        .unary(op: .init(type: op, line: 1), rhs: rhs)
+    }
+
+}

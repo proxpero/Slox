@@ -152,4 +152,9 @@ final class EvaluationTests: XCTestCase {
         let literal = try eval(expr)
         XCTAssertEqual(literal, .bool(false))
     }
+
+    func testMisMatchedBinaryTypes() throws {
+        let literal = try expr("true * 5")
+        XCTAssertThrowsError(try eval(literal))
+    }
 }

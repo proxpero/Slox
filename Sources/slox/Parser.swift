@@ -36,7 +36,7 @@ extension Parser {
     private func equality() throws -> Expr {
         var expr = try comparison()
         while matches(.bangEqual, .equalEqual) {
-            let op = previous.type
+            let op = previous
             let right = try comparison()
             expr = .binary(lhs: expr, op: op, rhs: right)
         }
@@ -46,7 +46,7 @@ extension Parser {
     private func comparison() throws -> Expr {
         var expr = try term()
         while matches(.greater, .greaterEqual, .less, .lessEqual) {
-            let op = previous.type
+            let op = previous
             let right = try term()
             expr = .binary(lhs: expr, op: op, rhs: right)
         }
@@ -56,7 +56,7 @@ extension Parser {
     private func term() throws -> Expr {
         var expr = try factor()
         while matches(.minus, .plus) {
-            let op = previous.type
+            let op = previous
             let right = try factor()
             expr = .binary(lhs: expr, op: op, rhs: right)
         }
@@ -66,7 +66,7 @@ extension Parser {
     private func factor() throws -> Expr {
         var expr = try unary()
         while matches(.slash, .star) {
-            let op = previous.type
+            let op = previous
             let right = try unary()
             expr = .binary(lhs: expr, op: op, rhs: right)
         }
@@ -75,7 +75,7 @@ extension Parser {
 
     private func unary() throws -> Expr {
         if matches(.bang, .minus) {
-            let op = previous.type
+            let op = previous
             let right = try unary()
             return .unary(op: op, rhs: right)
         }
