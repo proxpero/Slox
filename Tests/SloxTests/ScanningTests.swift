@@ -90,8 +90,8 @@ final class ScanningTests: XCTestCase {
         """#
         let tokens = Scanner(source: source).scanTokens()
         let expected: [Token] = [
-            .init(type: .string("\"\""), line: 1),
-            .init(type: .string("\"string\""), line: 2),
+            .init(type: .string(""), line: 1),
+            .init(type: .string("string"), line: 2),
             .init(type: .eof, line: 2),
         ]
         XCTAssertEqual(tokens, expected)

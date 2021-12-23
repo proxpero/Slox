@@ -139,6 +139,7 @@ extension Scanner {
     }
 
     private func addStringToken() {
+        start = current
         while peek != "\"", !isAtEnd {
             if peek == "\n" { line += 1 }
             advance()
@@ -148,11 +149,11 @@ extension Scanner {
             Slox.error(line, "Unterminated string.")
             return
         }
+        
+        addToken(.string(currentText))
 
         // The closing '"'
         advance()
-
-        addToken(.string(currentText))
     }
 
     private func addNumberToken() {
