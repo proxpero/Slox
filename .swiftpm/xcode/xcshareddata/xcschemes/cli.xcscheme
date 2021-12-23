@@ -14,9 +14,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "slox"
-               BuildableName = "slox"
-               BlueprintName = "slox"
+               BlueprintIdentifier = "cli"
+               BuildableName = "cli"
+               BlueprintName = "cli"
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
@@ -28,9 +28,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "sloxTests"
-               BuildableName = "sloxTests"
-               BlueprintName = "sloxTests"
+               BlueprintIdentifier = "SloxTests"
+               BuildableName = "SloxTests"
+               BlueprintName = "SloxTests"
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
@@ -46,9 +46,9 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "sloxTests"
-               BuildableName = "sloxTests"
-               BlueprintName = "sloxTests"
+               BlueprintIdentifier = "SloxTests"
+               BuildableName = "SloxTests"
+               BlueprintName = "SloxTests"
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>
@@ -81,15 +81,16 @@
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
       debugDocumentVersioning = "YES">
-      <MacroExpansion>
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "slox"
-            BuildableName = "slox"
-            BlueprintName = "slox"
+            BlueprintIdentifier = "cli"
+            BuildableName = "cli"
+            BlueprintName = "cli"
             ReferencedContainer = "container:">
          </BuildableReference>
-      </MacroExpansion>
+      </BuildableProductRunnable>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">
