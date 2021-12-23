@@ -77,7 +77,7 @@ extension Parser {
         if matches(.bang, .minus) {
             let op = previous.type
             let right = try unary()
-            return .unary(op: op, right: right)
+            return .unary(op: op, rhs: right)
         }
         return try primary()
     }

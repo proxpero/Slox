@@ -49,14 +49,14 @@ final class ParsingTests: XCTestCase {
         let source = "!true"
         let tokens = Scanner(source: source).scanTokens()
         let expr = try Parser(tokens: tokens).parse()
-        XCTAssertEqual(expr, .unary(op: .bang, right: .literal(true)))
+        XCTAssertEqual(expr, .unary(op: .bang, rhs: .literal(true)))
     }
 
     func testUnaryMinus() throws {
         let source = "-5"
         let tokens = Scanner(source: source).scanTokens()
         let expr = try Parser(tokens: tokens).parse()
-        XCTAssertEqual(expr, .unary(op: .minus, right: .literal(5)))
+        XCTAssertEqual(expr, .unary(op: .minus, rhs: .literal(5)))
     }
 
     func testFactorSlash() throws {
