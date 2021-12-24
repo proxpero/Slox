@@ -83,7 +83,6 @@ extension Parser {
     }
 
     private func primary() throws -> Expr {
-
         if matches(.false) {
             return .literal(value: .bool(false))
         }

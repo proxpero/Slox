@@ -19,22 +19,31 @@ extension Slox {
     private static func runFile(_ path: String) throws {
         let data = try Data(contentsOf: URL(fileURLWithPath: path))
         let source = String(decoding: data, as: UTF8.self)
-        run(source)
+        try run(source)
     }
 
     private static func runPrompt() throws {
         while true {
             print("> ", terminator: "")
             guard let line = readLine() else { return }
-            run(line)
+            try run(line)
         }
     }
 
-    private static func run(_ source: String) {
-        print(source)
+    private static func run(_ source: String) throws {
+        let tokens = Scanner(source: source).scanTokens()
+        do {
+            let expr = try Parser(tokens: tokens).parse()
+            let literal = try eval(expr)
+            print(literal)
+        } catch let runtime as RuntimeError {
+            print(runtime.messsage)
+        } catch {
+            print("Error")
+        }
     }
 
-    static func report(_ line: Int, _ where: String, _ message: String) {
+    private static func report(_ line: Int, _ where: String, _ message: String) {
         fputs("[line \(line)] Error\(`where`): \(message)\n", __stderrp)
         hadError = true
     }

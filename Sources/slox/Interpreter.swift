@@ -3,6 +3,4 @@ struct RuntimeError: Error {
     let messsage: String
 }
 
-class Interpreter {
-
-}
+class Interpreter {}

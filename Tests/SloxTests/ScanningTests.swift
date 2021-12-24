@@ -116,4 +116,16 @@ final class ScanningTests: XCTestCase {
         ]
         XCTAssertEqual(tokens, expected)
     }
+
+    func testErrors() {
+        let source = "\"hello\" + 4"
+        let tokens = Scanner(source: source).scanTokens()
+        let expected: [Token] = [
+            .init(type: .string("hello"), line: 1),
+            .init(type: .plus, line: 1),
+            .init(type: .number(4), line: 1),
+            .init(type: .eof, line: 1),
+        ]
+        XCTAssertEqual(tokens, expected)
+    }
 }

@@ -149,7 +149,7 @@ extension Scanner {
             Slox.error(line, "Unterminated string.")
             return
         }
-        
+
         addToken(.string(currentText))
 
         // The closing '"'

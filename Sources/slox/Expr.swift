@@ -12,6 +12,21 @@ enum LiteralValue: Equatable {
     case `nil`
 }
 
+extension LiteralValue: CustomStringConvertible {
+    var description: String {
+        switch self {
+        case .bool(let value):
+            return String(describing: value)
+        case .number(let value):
+            return String(describing: value)
+        case .string(let value):
+            return String(describing: value)
+        case .nil:
+            return "nil"
+        }
+    }
+}
+
 func eval(_ expr: Expr) throws -> LiteralValue {
     switch expr {
     case .binary(let lhs, let op, let rhs):

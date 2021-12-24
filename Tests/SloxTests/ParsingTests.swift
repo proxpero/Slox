@@ -2,7 +2,6 @@
 import XCTest
 
 final class ParsingTests: XCTestCase {
-
     func testNumber() throws {
         let source = "1"
         let tokens = Scanner(source: source).scanTokens()
@@ -131,7 +130,6 @@ final class ParsingTests: XCTestCase {
 }
 
 final class ParsingErrorTests: XCTestCase {
-
     func testMissingClosingParen() throws {
         let source = "(2 + 3"
         let tokens = Scanner(source: source).scanTokens()
@@ -147,5 +145,4 @@ extension Expr {
     static func unary(op: TokenType, rhs: Expr) -> Expr {
         .unary(op: .init(type: op, line: 1), rhs: rhs)
     }
-
 }

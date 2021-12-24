@@ -2,7 +2,6 @@
 import XCTest
 
 final class EvaluationTests: XCTestCase {
-
     func expr(_ source: String) throws -> Expr {
         let tokens = Scanner(source: source).scanTokens()
         let expr = try Parser(tokens: tokens).parse()
