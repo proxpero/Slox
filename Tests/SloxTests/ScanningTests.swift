@@ -117,6 +117,27 @@ final class ScanningTests: XCTestCase {
         XCTAssertEqual(tokens, expected)
     }
 
+    func testBraces() {
+        let source = """
+        if true {
+            y = 2;
+        }
+        """
+        let tokens = Scanner(source: source).scanTokens()
+        let expected: [Token] = [
+            .init(type: .if, line: 1),
+            .init(type: .true, line: 1),
+            .init(type: .leftBrace, line: 1),
+            .init(type: .identifier("y"), line: 2),
+            .init(type: .equal, line: 2),
+            .init(type: .number(2), line: 2),
+            .init(type: .semicolon, line: 2),
+            .init(type: .rightBrace, line: 3),
+            .init(type: .eof, line: 3),
+        ]
+        XCTAssertEqual(tokens, expected)
+    }
+
     func testErrors() {
         let source = "\"hello\" + 4"
         let tokens = Scanner(source: source).scanTokens()

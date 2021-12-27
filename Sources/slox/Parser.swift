@@ -7,18 +7,42 @@ class Parser {
         self.tokens = tokens
     }
 
-    func parse() throws -> Expr {
-        do {
-            return try expression()
-        } catch {
-            throw ParseError()
+    func parse() throws -> [Stmt] {
+        var statements: [Stmt] = []
+        while !isAtEnd {
+            if let statement = try declaration() {
+                statements.append(statement)
+            }
         }
+        return statements
     }
 }
 
-extension Parser {
+private extension Parser {
     /*
-     expression     → equality ;
+     program        → declaration* EOF ;
+
+     declaration    → varDecl
+                    | statement ;
+
+     varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
+
+     statement      → exprStmt
+                    | ifStmt
+                    | printStmt
+                    | whileStmt
+                    | block ;
+
+     exprStmt       → expression ";" ;
+     ifStmt         → "if" expression "{" statement "}" ( "else" "{" statement "}" )? ;
+     printStmt      → "print" expression ";" ;
+     whileStmt      → "while" expression "{" statement "}" ;
+     block          → "{" declaration* "}" ;
+     expression     → assignment ;
+     assignment     → IDENTIFIER "=" assignment
+                    | logic_or ;
+     logic_or       → logic_and ( "or" logic_and )* ;
+     logic_and      → equality ( "and" equality )* ;
      equality       → comparison ( ( "!=" | "==" ) comparison )* ;
      comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
      term           → factor ( ( "-" | "+" ) factor )* ;
@@ -27,13 +51,145 @@ extension Parser {
                     | primary ;
      primary        → NUMBER | STRING | "true" | "false" | "nil"
                     | "(" expression ")" ;
+                    | IDENTIFIER ;
      */
 
-    private func expression() throws -> Expr {
-        try equality()
+    func declaration() throws -> Stmt? {
+        do {
+            if matches(.var) { return try varDeclaration() }
+            return try statement()
+        } catch is ParseError {
+            synchronize()
+            return nil
+        }
     }
 
-    private func equality() throws -> Expr {
+    private func synchronize() {
+        advance()
+        while !isAtEnd {
+            if previous.type == .semicolon { return }
+
+            switch peek.type {
+            case .class,
+                 .for,
+                 .fun,
+                 .if,
+                 .print,
+                 .return,
+                 .var,
+                 .while: return
+            default: advance()
+            }
+        }
+    }
+
+    func varDeclaration() throws -> Stmt {
+        let name = try consumeIdentifier()
+        var initializer: Expr?
+        if matches(.equal) {
+            initializer = try expression()
+        }
+        try consumeSemicolon()
+        return .variable(name.lexeme, initializer)
+    }
+
+    func statement() throws -> Stmt {
+        if matches(.print) {
+            return try printStatement()
+        }
+
+        if matches(.if) {
+            return try ifStatement()
+        }
+
+        if matches(.while) {
+            return try whileStatement()
+        }
+
+        if matches(.leftBrace) {
+            return try block()
+        }
+
+        return try expressionStatement()
+    }
+
+    func printStatement() throws -> Stmt {
+        let value = try expression()
+        try consumeSemicolon()
+        return .print(value)
+    }
+
+    func ifStatement() throws -> Stmt {
+        let condition = try expression()
+        let thenBranch = try statement()
+        var elseBranch: Stmt?
+        if matches(.else) {
+            elseBranch = try statement()
+        }
+        return .if(conditon: condition, then: thenBranch, else: elseBranch)
+    }
+
+    func whileStatement() throws -> Stmt {
+        let condition = try expression()
+        let body = try statement()
+        return .while(condition: condition, body: body)
+    }
+
+    func block() throws -> Stmt {
+        var results: [Stmt] = []
+        while !check(.rightBrace), !isAtEnd {
+            if let stmt = try declaration() {
+                results.append(stmt)
+            }
+        }
+        try consume(.rightBrace, "Expected '}' after block.")
+        return .block(results)
+    }
+
+    func expressionStatement() throws -> Stmt {
+        let expr = try expression()
+        try consumeSemicolon()
+        return .expr(expr)
+    }
+
+    func expression() throws -> Expr {
+        try assignment()
+    }
+
+    func assignment() throws -> Expr {
+        let expr = try or()
+        if matches(.equal) {
+            let equals = previous
+            let value = try assignment()
+            guard case .variable(let name) = expr else {
+                throw error(equals, "Invalid assignment target.")
+            }
+            return .assign(name: name, value: value)
+        }
+        return expr
+    }
+
+    func or() throws -> Expr {
+        var expr = try and()
+        while matches(.or) {
+            let op = previous
+            let rhs = try and()
+            expr = .logical(lhs: expr, op: op, rhs: rhs)
+        }
+        return expr
+    }
+
+    func and() throws -> Expr {
+        var expr = try equality()
+        while matches(.and) {
+            let op = previous
+            let rhs = try equality()
+            expr = .logical(lhs: expr, op: op, rhs: rhs)
+        }
+        return expr
+    }
+
+    func equality() throws -> Expr {
         var expr = try comparison()
         while matches(.bangEqual, .equalEqual) {
             let op = previous
@@ -43,7 +199,7 @@ extension Parser {
         return expr
     }
 
-    private func comparison() throws -> Expr {
+    func comparison() throws -> Expr {
         var expr = try term()
         while matches(.greater, .greaterEqual, .less, .lessEqual) {
             let op = previous
@@ -53,7 +209,7 @@ extension Parser {
         return expr
     }
 
-    private func term() throws -> Expr {
+    func term() throws -> Expr {
         var expr = try factor()
         while matches(.minus, .plus) {
             let op = previous
@@ -63,7 +219,7 @@ extension Parser {
         return expr
     }
 
-    private func factor() throws -> Expr {
+    func factor() throws -> Expr {
         var expr = try unary()
         while matches(.slash, .star) {
             let op = previous
@@ -73,7 +229,7 @@ extension Parser {
         return expr
     }
 
-    private func unary() throws -> Expr {
+    func unary() throws -> Expr {
         if matches(.bang, .minus) {
             let op = previous
             let right = try unary()
@@ -82,7 +238,7 @@ extension Parser {
         return try primary()
     }
 
-    private func primary() throws -> Expr {
+    func primary() throws -> Expr {
         if matches(.false) {
             return .literal(value: .bool(false))
         }
@@ -107,30 +263,44 @@ extension Parser {
 
         if matches(.leftParen) {
             let expr = try expression()
-            try consume(.rightParen, "Expect ')' after expression.")
+            try consume(.rightParen, "Expected ')' after expression.")
             return .grouping(expr: expr)
+        }
+
+        if matchesIdentifier() {
+            return .variable(name: previous)
+        }
+
+        if matches(.var) {
+            return .variable(name: previous)
         }
 
         throw ParseError()
     }
 }
 
-extension Parser {
-    private struct ParseError: Error {}
+private extension Parser {
+    struct ParseError: Error {}
 
-    private var isAtEnd: Bool {
+    var isAtEnd: Bool {
         peek.type == .eof
     }
 
-    private var peek: Token {
+    var peek: Token {
         tokens[current]
     }
 
-    private var previous: Token {
+    var previous: Token {
         tokens[current - 1]
     }
 
-    private func matches(_ types: TokenType...) -> Bool {
+    func matchesIdentifier() -> Bool {
+        guard !isAtEnd, peek.type.isIdentifier else { return false }
+        advance()
+        return true
+    }
+
+    func matches(_ types: TokenType...) -> Bool {
         for type in types {
             if check(type) {
                 advance()
@@ -141,24 +311,39 @@ extension Parser {
     }
 
     @discardableResult
-    private func consume(_ type: TokenType, _ message: String) throws -> Token {
-        if check(type) { return advance() }
+    func consumeIdentifier() throws -> Token {
+        guard !isAtEnd, case .identifier = peek.type else {
+            throw error(peek, "Expected identifier.")
+        }
+        let token = peek
+        advance()
+        return token
+    }
 
+    @discardableResult
+    func consumeSemicolon() throws -> Token {
+        if check(.semicolon) { return advance() }
+        throw error(peek, "Expected semicolon after value.")
+    }
+
+    @discardableResult
+    func consume(_ type: TokenType, _ message: String) throws -> Token {
+        if check(type) { return advance() }
         throw error(peek, message)
     }
 
-    private func check(_ tokenType: TokenType) -> Bool {
+    func check(_ tokenType: TokenType) -> Bool {
         if isAtEnd { return false }
         return peek.type == tokenType
     }
 
     @discardableResult
-    private func advance() -> Token {
+    func advance() -> Token {
         if !isAtEnd { current += 1 }
         return previous
     }
 
-    private func error(_ token: Token, _ message: String) -> Error {
+    func error(_ token: Token, _ message: String) -> Error {
         Slox.error(token, message)
         return ParseError()
     }

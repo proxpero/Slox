@@ -1,3 +1,4 @@
+import Darwin
 enum TokenType: Equatable {
     // single-character tokens.
     case comma
@@ -46,6 +47,15 @@ enum TokenType: Equatable {
     case `while`
 
     case eof
+}
+
+extension TokenType {
+    var isIdentifier: Bool {
+        switch self {
+        case .identifier: return true
+        default: return false
+        }
+    }
 }
 
 struct Token: Equatable {
