@@ -21,41 +21,34 @@ class Parser {
 private extension Parser {
     /*
      program        → declaration* EOF ;
-
-     declaration    → varDecl
-                    | statement ;
-
-     varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
-
-     statement      → exprStmt
-                    | ifStmt
-                    | printStmt
-                    | whileStmt
-                    | block ;
-
-     exprStmt       → expression ";" ;
-     ifStmt         → "if" expression "{" statement "}" ( "else" "{" statement "}" )? ;
-     printStmt      → "print" expression ";" ;
-     whileStmt      → "while" expression "{" statement "}" ;
-     block          → "{" declaration* "}" ;
-     expression     → assignment ;
-     assignment     → IDENTIFIER "=" assignment
-                    | logic_or ;
-     logic_or       → logic_and ( "or" logic_and )* ;
-     logic_and      → equality ( "and" equality )* ;
-     equality       → comparison ( ( "!=" | "==" ) comparison )* ;
-     comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
-     term           → factor ( ( "-" | "+" ) factor )* ;
-     factor         → unary ( ( "/" | "*" ) unary )* ;
-     unary          → ( "!" | "-" ) unary
-                    | primary ;
-     primary        → NUMBER | STRING | "true" | "false" | "nil"
-                    | "(" expression ")" ;
-                    | IDENTIFIER ;
+     declaration    → funDecl | varDecl | statement
+     funDecl        → "fun" function
+     function       → IDENTIFIER "(" parameters? ")" block
+     parameters     → IDENTIFIER ( "," IDENTIFIER )*
+     varDecl        → "var" IDENTIFIER ( "=" expression )? ";"
+     statement      → exprStmt | ifStmt | printStmt | returnStmt | whileStmt | block
+     exprStmt       → expression ";"
+     ifStmt         → "if" expression "{" statement "}" ( "else" "{" statement "}" )?
+     printStmt      → "print" expression ";"
+     returnStmt     → "return" expression? ";"
+     whileStmt      → "while" expression "{" statement "}"
+     block          → "{" declaration* "}"
+     expression     → assignment
+     assignment     → IDENTIFIER "=" assignment | logic_or
+     logic_or       → logic_and ( "or" logic_and )*
+     logic_and      → equality ( "and" equality )*
+     equality       → comparison ( ( "!=" | "==" ) comparison )*
+     comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )*
+     term           → factor ( ( "-" | "+" ) factor )*
+     factor         → unary ( ( "/" | "*" ) unary )*
+     unary          → ( "!" | "-" ) unary | call
+     call           → primary ( "(" arguments? ")" )* ;
+     primary        → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" | IDENTIFIER ;
      */
 
     func declaration() throws -> Stmt? {
         do {
+            if matches(.fun) { return try function(kind: "function") }
             if matches(.var) { return try varDeclaration() }
             return try statement()
         } catch is ParseError {
@@ -83,12 +76,27 @@ private extension Parser {
         }
     }
 
+    func function(kind: String) throws -> Stmt {
+        let name = try consumeIdentifier()
+        try consume(.leftParen, "Expected '(' after \(kind)")
+        var parameters: [Token] = []
+        if !check(.rightParen) {
+            repeat {
+                parameters.append(try consumeIdentifier(kind: kind))
+            } while matches(.comma)
+        }
+        try consume(.rightParen, "Expected ')' after parameters")
+        try consume(.leftBrace, "Expected '{'")
+        let body = try block()
+        return .function(name: name, parameters: parameters, body: body)
+    }
+
     func varDeclaration() throws -> Stmt {
         let name = try consumeIdentifier()
-        var initializer: Expr?
-        if matches(.equal) {
-            initializer = try expression()
+        guard matches(.equal) else {
+            throw ParseError()
         }
+        let initializer = try expression()
         try consumeSemicolon()
         return .variable(name.lexeme, initializer)
     }
@@ -102,12 +110,16 @@ private extension Parser {
             return try ifStatement()
         }
 
+        if matches(.return) {
+            return try returnStatement()
+        }
+
         if matches(.while) {
             return try whileStatement()
         }
 
         if matches(.leftBrace) {
-            return try block()
+            return .block(try block())
         }
 
         return try expressionStatement()
@@ -129,13 +141,19 @@ private extension Parser {
         return .if(conditon: condition, then: thenBranch, else: elseBranch)
     }
 
+    func returnStatement() throws -> Stmt {
+        let value = try expression()
+        try consume(.semicolon, "Expected ';' after return value.")
+        return .return(value)
+    }
+
     func whileStatement() throws -> Stmt {
         let condition = try expression()
         let body = try statement()
         return .while(condition: condition, body: body)
     }
 
-    func block() throws -> Stmt {
+    func block() throws -> [Stmt] {
         var results: [Stmt] = []
         while !check(.rightBrace), !isAtEnd {
             if let stmt = try declaration() {
@@ -143,7 +161,7 @@ private extension Parser {
             }
         }
         try consume(.rightBrace, "Expected '}' after block.")
-        return .block(results)
+        return results
     }
 
     func expressionStatement() throws -> Stmt {
@@ -235,7 +253,30 @@ private extension Parser {
             let right = try unary()
             return .unary(op: op, rhs: right)
         }
-        return try primary()
+        return try call()
+    }
+
+    func call() throws -> Expr {
+
+        func finish(callee: Expr) throws -> Expr {
+            var arguments: [Expr] = []
+            if !check(.rightParen) {
+                repeat {
+                    arguments.append(try expression())
+                } while matches(.comma)
+            }
+            let paren = try consume(.rightParen, "Expected ')' after arguments.")
+            return .call(callee: callee, paren: paren, arguments: arguments)
+        }
+
+        var expr = try primary()
+        while true {
+            guard matches(.leftParen) else {
+                break
+            }
+            expr = try finish(callee: expr)
+        }
+        return expr
     }
 
     func primary() throws -> Expr {
@@ -311,9 +352,9 @@ private extension Parser {
     }
 
     @discardableResult
-    func consumeIdentifier() throws -> Token {
+    func consumeIdentifier(kind: String? = nil) throws -> Token {
         guard !isAtEnd, case .identifier = peek.type else {
-            throw error(peek, "Expected identifier.")
+            throw error(peek, "Expected \(kind != nil ? kind! : "") identifier.")
         }
         let token = peek
         advance()

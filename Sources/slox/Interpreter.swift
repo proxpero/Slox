@@ -37,8 +37,18 @@ func eval(_ expr: Expr, environment: Environment) throws -> LiteralValue {
         default:
             throw RuntimeError(token: op, messsage: "Invalid Binary operands.")
         }
+
+    case .call(let callee, let paren, let arguments):
+        guard case .function(let function) = try eval(callee, environment: environment) else {
+            throw RuntimeError(token: paren, messsage: "Tried to call non-function \(try! eval(callee, environment: environment)).")
+        }
+        let args = try arguments.map { try eval($0, environment: environment) }
+        let ret = try function.call(args)
+        return ret
+
     case .grouping(let expr):
         return try eval(expr, environment: environment)
+
     case .literal(let value):
         return value
 
@@ -65,10 +75,9 @@ func eval(_ expr: Expr, environment: Environment) throws -> LiteralValue {
         default:
             throw RuntimeError(token: op, messsage: "Invalid unary operand.")
         }
+
     case .variable(let name):
         return try environment.get(name: name)
-//        throw RuntimeError(token: name, messsage: "Expected a value for \(name.lexeme)")
-//        return value
     }
 }
 
@@ -89,6 +98,15 @@ func execute(_ statements: [Stmt], environment: Environment) throws {
             let v = try eval(expr, environment: environment)
             print(v)
 
+        case .function(let name, let parameters, let body):
+            let function = Function(
+                name: name,
+                parameters: parameters,
+                body: body,
+                closure: environment
+            )
+            environment.define(name: name.lexeme, value: .function(function))
+
         case .if(let conditon, let thenBranch, let elseBranch):
             if isTruthy(try eval(conditon, environment: environment)) {
                 try execute(thenBranch, environment: environment)
@@ -99,7 +117,6 @@ func execute(_ statements: [Stmt], environment: Environment) throws {
         case .print(let expr):
             let v = try eval(expr, environment: environment)
             print(v)
-
 
         case .variable(let name, let initializer):
             guard let initializer = initializer else {
@@ -112,6 +129,9 @@ func execute(_ statements: [Stmt], environment: Environment) throws {
             while (isTruthy(try eval(condition, environment: environment))) {
                 try execute(body, environment: environment)
             }
+            
+        case .return(let expr):
+            throw Return(try eval(expr, environment: environment))
         }
     }
 }
@@ -120,6 +140,8 @@ private func isTruthy(_ literal: LiteralValue) -> Bool {
     switch literal {
     case .bool(let bool):
         return bool
+    case .function(let fun):
+        return false
     case .number(let double):
         return double > 0
     case .string(let string):

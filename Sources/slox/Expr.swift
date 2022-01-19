@@ -1,6 +1,7 @@
 indirect enum Expr: Equatable {
     case assign(name: Token, value: Expr)
     case binary(lhs: Expr, op: Token, rhs: Expr)
+    case call(callee: Expr, paren: Token, arguments: [Expr])
     case grouping(expr: Expr)
     case literal(value: LiteralValue)
     case logical(lhs: Expr, op: Token, rhs: Expr)
@@ -21,6 +22,7 @@ extension Expr {
 
 enum LiteralValue: Equatable {
     case bool(Bool)
+    case function(Function)
     case number(Double)
     case string(String)
     case `nil`
@@ -31,6 +33,8 @@ extension LiteralValue: CustomStringConvertible {
         switch self {
         case .bool(let value):
             return String(describing: value)
+        case .function:
+            return "Function"
         case .number(let value):
             return String(describing: value)
         case .string(let value):
